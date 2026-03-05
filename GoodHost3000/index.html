@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureMail Pro</title>
+    <link rel="stylesheet" href="http://localhost:6001/theme.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="http://localhost:6001/logo.png" alt="Logo">
+        </div>
+        
+        <div id="username">John Smith</div>
+    </header>
+
+    <div id="email-container">
+        <aside id="sidebar">
+            <h3>Incoming letters:</h3>
+            <ul id="email-list">
+            </ul>
+        </aside>
+
+        <main id="email-content">
+            <p>Select a mail from the list to read it.</p>
+        </main>
+    </div>
+
+    <div id="support-chat"></div>
+
+    <script src="main.js" type="module"></script>
+    <script src="http://localhost:6001/react-mock.js"></script>
+    <script src="http://localhost:4000/support.js"></script>
+    <script src="http://localhost:5000/weather.js"></script>
+</body>
+</html>
