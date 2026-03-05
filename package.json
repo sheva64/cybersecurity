@@ -1,0 +1,25 @@
+{
+  "name": "cybersecurity",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sheva64/cybersecurity.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sheva64/cybersecurity/issues"
+  },
+  "homepage": "https://github.com/sheva64/cybersecurity#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}

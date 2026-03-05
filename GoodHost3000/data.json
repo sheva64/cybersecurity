@@ -1,0 +1,12 @@
+[
+    {
+        "sender": "Max Voronin",
+        "subject": "Greeting 1",
+        "body": "Hi John."
+    },
+    {
+        "sender": "Bohdan Shevtsov",
+        "subject": "Greeting 2",
+        "body": "Hello John. How are you?"
+    }
+]
