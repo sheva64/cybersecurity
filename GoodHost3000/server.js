@@ -27,6 +27,24 @@ if (mode === "mode1") {
     app.use(cors());
 }
 
+app.use((req, res, next) => {
+    if (mode === "csp-strict") {
+        res.setHeader("Content-Security-Policy", "default-src 'self';");
+        // Браузер дозволить завантажувати ресурси тільки з порту 3000.
+        // Логотип, стилі (з порту 6001), скрипти підтримки та погоди (порти 4000 і 5000) завантажуватися не будуть.
+    } else if (mode === "csp-balanced") {
+        res.setHeader(  
+            "Content-Security-Policy", 
+            "default-src 'self'; img-src *; style-src *; script-src 'self' http://localhost:4000 http://localhost:6001;"
+        );
+        // Логотип та CSS з порту 6001, чат підтримки з порту 4000 працюватимуть. 
+        // Щоб чат працював повноцінно, заголовок потрібно було б доповнити, дозволивши з'єднання з портом 4000:
+        // (script-src 'self' http://localhost:4000 http://localhost:6001; connect-src 'self' http://localhost:4000;)
+        // Скрипт погоди з порту 5000 буде заблокований, оскільки його немає у списку дозволених джерел script-src.
+    }
+    next();
+});
+
 app.get("/emails", (req, res) => {
     const emails = JSON.parse(fs.readFileSync(new URL("data.json", import.meta.url), "utf8"));
     res.json(emails);
