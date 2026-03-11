@@ -25,9 +25,17 @@ if (modeIndex !== -1 && args[modeIndex + 1]) {
     mode = args[modeIndex + 1];
 }
 
-if (mode === "mode1") {
+if (mode === "mode1" || mode === "breach") {
     app.use(cors());
 }
+
+app.get("/react-mock.js", (req, res) => {
+    if (mode === "breach") {
+        res.type("text/javascript").send('alert("CRITICAL: CDN Compromised! Stealing data...");');
+    } else {
+        res.sendFile(path.join(__dirname, "public", "react-mock.js"));
+    }
+});
 
 app.use("/", express.static(path.join(__dirname, "public")));
 
