@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import crypto from "crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,8 +51,29 @@ app.get("/emails", (req, res) => {
     res.json(emails);
 });
 
+let sriIntegrity = "";
+if (mode === "mode-sri-active") {
+    try {
+        const reactMockContent = fs.readFileSync(path.join(__dirname, "../StaticHost6000/public/react-mock.js"));
+        const hash = crypto.createHash('sha256').update(reactMockContent).digest('base64');
+        sriIntegrity = `sha256-${hash}`;
+        console.log(`[SRI] Hash generated: ${sriIntegrity}`);
+    } catch (err) {
+        console.error("Error generating SRI hash:", err);
+    }
+}
+
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
+    let html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
+
+    if (mode === "mode-sri-active") {
+        html = html.replace(
+            '<script src="http://localhost:6001/react-mock.js"></script>',
+            `<script src="http://localhost:6001/react-mock.js" integrity="${sriIntegrity}" crossorigin="anonymous"></script>`
+        );
+    }
+
+    res.send(html);
 });
 
 app.get("/main.js", (req, res) => {
