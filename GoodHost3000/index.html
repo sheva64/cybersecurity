@@ -11,17 +11,21 @@
         <div class="logo-container">
             <img src="http://localhost:6001/logo.png" alt="Logo">
         </div>
-        
-        <div id="username">John Smith</div>
+        <div id="username">Guest</div>
     </header>
 
-    <div id="email-container">
+    <div id="login-section" style="padding: 20px; text-align: center;">
+        <h2>Login to SecureMail Pro</h2>
+        <input type="text" id="login-username">
+        <input type="password" id="login-password">
+        <button id="login-btn">Login</button>
+    </div>
+
+    <div id="email-container" style="display: none;">
         <aside id="sidebar">
             <h3>Incoming letters:</h3>
-            <ul id="email-list">
-            </ul>
+            <ul id="email-list"></ul>
         </aside>
-
         <main id="email-content">
             <p>Select a mail from the list to read it.</p>
         </main>
