@@ -46,6 +46,7 @@ app.use((req, res, next) => {
     next();
 });
 
+// Можна замінити на "/api/emails" для 4 завдання Lab 4
 app.get("/emails", (req, res) => {
     const emails = JSON.parse(fs.readFileSync(new URL("data.json", import.meta.url), "utf8"));
     res.json(emails);
@@ -78,6 +79,36 @@ app.get("/", (req, res) => {
 
 app.get("/main.js", (req, res) => {
     res.sendFile(path.join(__dirname, "main.js"));
+});
+
+const users = {
+    "bohdan": "123",
+    "bob": "000"
+};
+
+const sessions = {};
+
+// Ендпоінт для логіну
+app.get('/login', (req, res) => {
+    const { username, password } = req.query;
+
+    if (users[username] && users[username] === password) {
+        const sessionId = `abc-123-xyz-${username}`;
+        sessions[sessionId] = username;
+
+        // Завдання 1.1: Наївне налаштування кукі (без безпеки)
+        res.setHeader('Set-Cookie', `SessionID=${sessionId}; Path=/`);
+
+        // Завдання 3: Захист за допомогою HttpOnly
+        // res.setHeader('Set-Cookie', `SessionID=${sessionId}; Path=/; HttpOnly`);
+
+        // Завдання 4: Обмеження шляху
+        // res.setHeader('Set-Cookie', `SessionID=${sessionId}; Path=/api; HttpOnly`);
+
+        res.send("Login Successful!");
+    } else {
+        res.status(401).send("Invalid credentials");
+    }
 });
 
 app.listen(PORT, () => {
