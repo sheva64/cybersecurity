@@ -97,13 +97,18 @@ app.get('/login', (req, res) => {
         sessions[sessionId] = username;
 
         // Завдання 1.1: Наївне налаштування кукі (без безпеки)
-        res.setHeader('Set-Cookie', `SessionID=${sessionId}; Path=/`);
+        // res.setHeader('Set-Cookie', `SessionID=${sessionId}; Path=/`);
 
         // Завдання 3: Захист за допомогою HttpOnly
+        // Не допомагає при "Man-in-the-Middle" (Lab5)
         // res.setHeader('Set-Cookie', `SessionID=${sessionId}; Path=/; HttpOnly`);
 
         // Завдання 4: Обмеження шляху
         // res.setHeader('Set-Cookie', `SessionID=${sessionId}; Path=/api; HttpOnly`);
+
+        // Прапорець Secure гарантує, що кукі відправляються лише через HTTPS (Lab5)
+        // Для тестування потрібно використовувати http://192.168.1.2:8080/ (localhost ігнорує обмеження Secure)
+        res.setHeader('Set-Cookie', `SessionID=${sessionId}; HttpOnly; Secure; Path=/`);
 
         res.send("Login Successful!");
     } else {
