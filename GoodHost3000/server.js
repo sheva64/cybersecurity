@@ -34,8 +34,8 @@ app.use((req, res, next) => {
         // Браузер дозволить завантажувати ресурси тільки з порту 3000.
         // Логотип, стилі (з порту 6001), скрипти підтримки та погоди (порти 4000 і 5000) завантажуватися не будуть.
     } else if (mode === "csp-balanced") {
-        res.setHeader(  
-            "Content-Security-Policy", 
+        res.setHeader(
+            "Content-Security-Policy",
             "default-src 'self'; img-src *; style-src *; script-src 'self' http://localhost:4000 http://localhost:6001;"
         );
         // Логотип та CSS з порту 6001, чат підтримки з порту 4000 працюватимуть. 
@@ -89,6 +89,8 @@ function getSessionIdFromCookie(cookieHeader) {
     return match ? match[1] : null;
 }
 
+let emailsDb = JSON.parse(fs.readFileSync(new URL("data.json", import.meta.url), "utf8"));
+
 // Ендпоінт для отримання листів (з валідацією сесії)
 app.get("/emails", (req, res) => {
     const sessionId = getSessionIdFromCookie(req.headers.cookie);
@@ -108,9 +110,11 @@ app.get("/emails", (req, res) => {
     }
 
     // Якщо все добре, віддаємо листи
-    const emails = JSON.parse(fs.readFileSync(new URL("data.json", import.meta.url), "utf8"));
+    res.json(emailsDb);
     res.json(emails);
 });
+
+app.use(express.json());
 
 // Ендпоінт для логіну
 app.get('/login', (req, res) => {
@@ -118,29 +122,46 @@ app.get('/login', (req, res) => {
 
     if (users[username] && users[username] === password) {
         const sessionId = `abc-123-xyz-${username}`;
+        const csrfToken = crypto.randomBytes(16).toString("hex");
         
-        // Зберігаємо не тільки ім'я, але й час створення (Timestamp)
         sessions[sessionId] = {
             username: username,
-            createdAt: Date.now() 
+            createdAt: Date.now(),
+            csrfToken: csrfToken
         };
 
-        res.setHeader('Set-Cookie', `SessionID=${sessionId}; HttpOnly; Secure; Path=/`);
-        res.send("Login Successful!");
+        res.setHeader('Set-Cookie', `SessionID=${sessionId}; HttpOnly; Secure; Path=/; SameSite=Strict`);
+        res.json({ message: "Login Successful!", csrfToken: csrfToken });
     } else {
         res.status(401).send("Invalid credentials");
     }
 });
 
+app.post("/api/emails/delete/:id", (req, res) => {
+    const sessionId = getSessionIdFromCookie(req.headers.cookie);
+    if (!sessionId || !sessions[sessionId]) return res.status(401).send("Unauthorized");
+
+    // Перевірка секретного CSRF-токена
+    const clientToken = req.body._csrf_token;
+    if (!clientToken || clientToken !== sessions[sessionId].csrfToken) {
+        return res.status(403).send("Forbidden: Invalid CSRF Token"); // Відхиляємо запит
+    }
+
+    const emailId = parseInt(req.params.id);
+    emailsDb = emailsDb.filter(email => email.id !== emailId);
+    
+    res.send("Email deleted");
+});
+
 // Ендпоінт для виходу
 app.get('/logout', (req, res) => {
     const sessionId = getSessionIdFromCookie(req.headers.cookie);
-    
+
     // Видаляємо SessionID зі списку активних сесій на сервері
     if (sessionId && sessions[sessionId]) {
         delete sessions[sessionId];
     }
-    
+
     res.send("Logged out successfully");
 });
 

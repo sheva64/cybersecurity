@@ -5,6 +5,9 @@ document.getElementById("login-btn").addEventListener("click", async () => {
     try {
         const res = await fetch(`/login?username=${user}&password=${pass}`);
         if (res.ok) {
+            const data = await res.json();
+            window.csrfToken = data.csrfToken; // Зберігаємо отриманий токен в пам'яті клієнта
+        
             document.getElementById("username").textContent = `Logged in as ${user}`;
             document.getElementById("login-section").style.display = "none";
             document.getElementById("email-container").style.display = "flex";
@@ -56,6 +59,24 @@ async function loadEmails() {
     emailList.forEach(email => {
         const emailEl = document.createElement("li");
         emailEl.textContent = "From: " + email.sender;
+    
+        // Створюємо та додаємо кнопку видалення
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.style.marginLeft = "15px";
+        deleteBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            await fetch(`/api/emails/delete/${email.id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ _csrf_token: window.csrfToken })
+            });
+            loadEmails();
+        });
+        emailEl.append(deleteBtn);
+    
         emailEl.addEventListener("click", () => {
             mainArea.innerHTML = `<p>Subject: <b>${email.subject}</b></p> <p>${email.body}</p>`;
         });
