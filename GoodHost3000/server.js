@@ -46,12 +46,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Можна замінити на "/api/emails" для 4 завдання Lab 4
-app.get("/emails", (req, res) => {
-    const emails = JSON.parse(fs.readFileSync(new URL("data.json", import.meta.url), "utf8"));
-    res.json(emails);
-});
-
 let sriIntegrity = "";
 if (mode === "mode-sri-active") {
     try {
@@ -88,34 +82,68 @@ const users = {
 
 const sessions = {};
 
+// Допоміжна функція для розбору кукі
+function getSessionIdFromCookie(cookieHeader) {
+    if (!cookieHeader) return null;
+    const match = cookieHeader.match(/SessionID=([^;]+)/);
+    return match ? match[1] : null;
+}
+
+// Ендпоінт для отримання листів (з валідацією сесії)
+app.get("/emails", (req, res) => {
+    const sessionId = getSessionIdFromCookie(req.headers.cookie);
+
+    // Перевірка чи існує сесія в списку активних
+    if (!sessionId || !sessions[sessionId]) {
+        return res.status(401).send("Unauthorized: Invalid or missing session.");
+    }
+
+    const session = sessions[sessionId];
+    const now = Date.now();
+
+    // Перевірка чи не старіша сесія за 2 хвилини
+    if (now - session.createdAt > 2 * 60 * 1000) { // 2 хвилини в мілісекундах
+        delete sessions[sessionId];
+        return res.status(401).send("Unauthorized: Session expired.");
+    }
+
+    // Якщо все добре, віддаємо листи
+    const emails = JSON.parse(fs.readFileSync(new URL("data.json", import.meta.url), "utf8"));
+    res.json(emails);
+});
+
 // Ендпоінт для логіну
 app.get('/login', (req, res) => {
     const { username, password } = req.query;
 
     if (users[username] && users[username] === password) {
         const sessionId = `abc-123-xyz-${username}`;
-        sessions[sessionId] = username;
+        
+        // Зберігаємо не тільки ім'я, але й час створення (Timestamp)
+        sessions[sessionId] = {
+            username: username,
+            createdAt: Date.now() 
+        };
 
-        // Завдання 1.1: Наївне налаштування кукі (без безпеки)
-        // res.setHeader('Set-Cookie', `SessionID=${sessionId}; Path=/`);
-
-        // Завдання 3: Захист за допомогою HttpOnly
-        // Не допомагає при "Man-in-the-Middle" (Lab5)
-        // res.setHeader('Set-Cookie', `SessionID=${sessionId}; Path=/; HttpOnly`);
-
-        // Завдання 4: Обмеження шляху
-        // res.setHeader('Set-Cookie', `SessionID=${sessionId}; Path=/api; HttpOnly`);
-
-        // Прапорець Secure гарантує, що кукі відправляються лише через HTTPS (Lab5)
-        // Для тестування потрібно використовувати http://192.168.1.2:8080/ (localhost ігнорує обмеження Secure)
         res.setHeader('Set-Cookie', `SessionID=${sessionId}; HttpOnly; Secure; Path=/`);
-
         res.send("Login Successful!");
     } else {
         res.status(401).send("Invalid credentials");
     }
 });
 
+// Ендпоінт для виходу
+app.get('/logout', (req, res) => {
+    const sessionId = getSessionIdFromCookie(req.headers.cookie);
+    
+    // Видаляємо SessionID зі списку активних сесій на сервері
+    if (sessionId && sessions[sessionId]) {
+        delete sessions[sessionId];
+    }
+    
+    res.send("Logged out successfully");
+});
+
 app.listen(PORT, () => {
     console.log(`[System] Server started in mode "${mode}" on port ${PORT}.`);
-})
+});
