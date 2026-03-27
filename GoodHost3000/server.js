@@ -4,12 +4,14 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
 import crypto from "crypto";
-
+import https from "https";
+import http from "http";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3000;
+const HTTPS_PORT = 3443; // Порт для HTTPS згідно з Task 2
 
 const versionPath = new URL("version.txt", import.meta.url);
 const version = fs.readFileSync(versionPath, "utf-8").trim();
@@ -23,25 +25,24 @@ const modeIndex = args.indexOf("--mode");
 if (modeIndex !== -1 && args[modeIndex + 1]) mode = args[modeIndex + 1];
 console.log(`[System] Starting ${config.appName} v.${version}...`);
 
-
 if (mode === "mode1") {
     app.use(cors());
 }
 
+// Додано для Task 4: HSTS (Strict-Transport-Security)
+app.use((req, res, next) => {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    next();
+});
+
 app.use((req, res, next) => {
     if (mode === "csp-strict") {
         res.setHeader("Content-Security-Policy", "default-src 'self';");
-        // Браузер дозволить завантажувати ресурси тільки з порту 3000.
-        // Логотип, стилі (з порту 6001), скрипти підтримки та погоди (порти 4000 і 5000) завантажуватися не будуть.
     } else if (mode === "csp-balanced") {
         res.setHeader(
             "Content-Security-Policy",
             "default-src 'self'; img-src *; style-src *; script-src 'self' http://localhost:4000 http://localhost:6001;"
         );
-        // Логотип та CSS з порту 6001, чат підтримки з порту 4000 працюватимуть. 
-        // Щоб чат працював повноцінно, заголовок потрібно було б доповнити, дозволивши з'єднання з портом 4000:
-        // (script-src 'self' http://localhost:4000 http://localhost:6001; connect-src 'self' http://localhost:4000;)
-        // Скрипт погоди з порту 5000 буде заблокований, оскільки його немає у списку дозволених джерел script-src.
     }
     next();
 });
@@ -82,7 +83,6 @@ const users = {
 
 const sessions = {};
 
-// Допоміжна функція для розбору кукі
 function getSessionIdFromCookie(cookieHeader) {
     if (!cookieHeader) return null;
     const match = cookieHeader.match(/SessionID=([^;]+)/);
@@ -91,11 +91,9 @@ function getSessionIdFromCookie(cookieHeader) {
 
 let emailsDb = JSON.parse(fs.readFileSync(new URL("data.json", import.meta.url), "utf8"));
 
-// Ендпоінт для отримання листів (з валідацією сесії)
 app.get("/emails", (req, res) => {
     const sessionId = getSessionIdFromCookie(req.headers.cookie);
 
-    // Перевірка чи існує сесія в списку активних
     if (!sessionId || !sessions[sessionId]) {
         return res.status(401).send("Unauthorized: Invalid or missing session.");
     }
@@ -103,20 +101,16 @@ app.get("/emails", (req, res) => {
     const session = sessions[sessionId];
     const now = Date.now();
 
-    // Перевірка чи не старіша сесія за 2 хвилини
-    if (now - session.createdAt > 2 * 60 * 1000) { // 2 хвилини в мілісекундах
+    if (now - session.createdAt > 2 * 60 * 1000) { 
         delete sessions[sessionId];
         return res.status(401).send("Unauthorized: Session expired.");
     }
 
-    // Якщо все добре, віддаємо листи
     res.json(emailsDb);
-    res.json(emails);
 });
 
 app.use(express.json());
 
-// Ендпоінт для логіну
 app.get('/login', (req, res) => {
     const { username, password } = req.query;
 
@@ -130,6 +124,7 @@ app.get('/login', (req, res) => {
             csrfToken: csrfToken
         };
 
+        // Прапорець Secure тут вже встановлений, що виконує вимогу з Task 4
         res.setHeader('Set-Cookie', `SessionID=${sessionId}; HttpOnly; Secure; Path=/; SameSite=Strict`);
         res.json({ message: "Login Successful!", csrfToken: csrfToken });
     } else {
@@ -141,10 +136,9 @@ app.post("/api/emails/delete/:id", (req, res) => {
     const sessionId = getSessionIdFromCookie(req.headers.cookie);
     if (!sessionId || !sessions[sessionId]) return res.status(401).send("Unauthorized");
 
-    // Перевірка секретного CSRF-токена
     const clientToken = req.body._csrf_token;
     if (!clientToken || clientToken !== sessions[sessionId].csrfToken) {
-        return res.status(403).send("Forbidden: Invalid CSRF Token"); // Відхиляємо запит
+        return res.status(403).send("Forbidden: Invalid CSRF Token"); 
     }
 
     const emailId = parseInt(req.params.id);
@@ -153,18 +147,31 @@ app.post("/api/emails/delete/:id", (req, res) => {
     res.send("Email deleted");
 });
 
-// Ендпоінт для виходу
 app.get('/logout', (req, res) => {
     const sessionId = getSessionIdFromCookie(req.headers.cookie);
-
-    // Видаляємо SessionID зі списку активних сесій на сервері
     if (sessionId && sessions[sessionId]) {
         delete sessions[sessionId];
     }
-
     res.send("Logged out successfully");
 });
 
-app.listen(PORT, () => {
-    console.log(`[System] Server started in mode "${mode}" on port ${PORT}.`);
+
+// Завантаження ключів (Task 2)
+const httpsOptions = {
+    key: fs.readFileSync(path.join(__dirname, 'key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'cert.pem'))
+};
+
+// Запуск захищеного HTTPS сервера на порту 3443 (Task 2)
+https.createServer(httpsOptions, app).listen(HTTPS_PORT, () => {
+    console.log(`[System] Secure Server started in mode "${mode}" on https://localhost:${HTTPS_PORT}.`);
+});
+
+// Запуск HTTP сервера для перенаправлення на порту 3000 (Task 3)
+http.createServer((req, res) => {
+    // Повертаємо код 301 та новий URL
+    res.writeHead(301, { "Location": `https://localhost:${HTTPS_PORT}${req.url}` });
+    res.end();
+}).listen(PORT, () => {
+    console.log(`[System] HTTP Redirect Server listening on http://localhost:${PORT} -> redirecting to HTTPS.`);
 });
