@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camp Booking Form</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { padding: 8px; width: 100%; max-width: 300px; }
+        button { padding: 10px 15px; background-color: #4e73df; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>Camp Booking Application</h2>
+    <form action="/book" method="POST">
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+            <label for="surname">Surname:</label>
+            <input type="text" id="surname" name="surname" required>
+        </div>
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+            <label for="age">Age:</label>
+            <input type="number" id="age" name="age" min="5" max="100" required>
+        </div>
+        <div class="form-group">
+            <label for="date">Date of Booking:</label>
+            <input type="date" id="date" name="date" required>
+        </div>
+        <button type="submit">Submit Booking</button>
+    </form>
+</body>
+</html>
